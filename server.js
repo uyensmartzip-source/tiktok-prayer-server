@@ -5,14 +5,9 @@ const { WebcastPushConnection } = require('tiktok-live-connector');
 
 const app = express();
 const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
-const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] }
-});
-
-app.get('/', (req, res) => {
-  res.send('Server Cầu Nguyện TikTok LIVE đang hoạt động tuyệt vời!');
-});
+app.get('/', (req, res) => { res.send('Server TikTok LIVE đang hoạt động!'); });
 
 let tiktokLive = null;
 
@@ -34,28 +29,16 @@ function connectToTikTok(socket, username) {
     socket.emit('status', { connected: false, error: err.message });
   });
 
-  // 1. Lắng nghe Comment cầu nguyện
   tiktokLive.on('chat', data => {
     const isFemale = /thị|hương|lan|mai|linh|trang|ngọc|vy|nhi|huyền|thảo|yến|uyên|my|nhung|hà|anh|thư|trâm/i.test(data.nickname);
-    io.emit('prayer_event', {
-      username: data.nickname,
-      text: data.comment,
-      gender: isFemale ? 'female' : 'male'
-    });
+    io.emit('prayer_event', { username: data.nickname, text: data.comment, gender: isFemale ? 'female' : 'male' });
   });
 
-  // 2. Lắng nghe Quà tặng (Gift)
   tiktokLive.on('gift', data => {
     if (data.giftType === 1 && !data.repeatEnd) return;
-    const totalDiamonds = data.diamondCount * data.repeatCount;
-    io.emit('gift_event', {
-      username: data.nickname,
-      diamonds: totalDiamonds,
-      giftName: data.giftName || 'Hoa Thánh'
-    });
+    io.emit('gift_event', { username: data.nickname, diamonds: data.diamondCount * data.repeatCount, giftName: data.giftName || 'Hoa Thánh' });
   });
 
-  // 3. Lắng nghe lượt Thả Tim (Like)
   tiktokLive.on('like', data => {
     io.emit('like_event', { count: data.likeCount });
   });
@@ -64,7 +47,7 @@ function connectToTikTok(socket, username) {
 io.on('connection', (socket) => {
   console.log('📱 Giao diện app 3D đã kết nối vào Server trung gian.');
   
-  // Tự động nhận diện khi app gửi ID kênh TikTok lên
+  // Lắng nghe lệnh gán kênh từ giao diện web
   socket.on('set_channel', (newUsername) => {
     if (newUsername) {
       connectToTikTok(socket, newUsername);
@@ -73,6 +56,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server trung gian đang chạy trên cổng ${PORT}`);
-});
+server.listen(PORT, () => { console.log(`🚀 Server đang chạy trên cổng ${PORT}`); });
