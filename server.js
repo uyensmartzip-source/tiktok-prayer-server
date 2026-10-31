@@ -46,7 +46,7 @@ function connectToTikTok(socket, username) {
 
   // 2. Lắng nghe Quà tặng (Gift)
   tiktokLive.on('gift', data => {
-    if (data.giftType === 1 && !data.repeatEnd) return; // Chờ kết thúc combo quà
+    if (data.giftType === 1 && !data.repeatEnd) return;
     const totalDiamonds = data.diamondCount * data.repeatCount;
     io.emit('gift_event', {
       username: data.nickname,
@@ -64,7 +64,7 @@ function connectToTikTok(socket, username) {
 io.on('connection', (socket) => {
   console.log('📱 Giao diện app 3D đã kết nối vào Server trung gian.');
   
-  // Nhận yêu cầu đổi kênh TikTok từ nút 🔗 TikTok trên app
+  // Tự động nhận diện khi app gửi ID kênh TikTok lên
   socket.on('set_channel', (newUsername) => {
     if (newUsername) {
       connectToTikTok(socket, newUsername);
