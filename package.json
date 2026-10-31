@@ -1,0 +1,64 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class MultiCharacterPrayerManager : MonoBehaviour
+{
+    [Header("Cài đặt Prefab")]
+    public GameObject candlePrefab;       // Kéo Prefab cây nến vào đây
+    public GameObject femaleCharPrefab;   // Kéo Prefab nhân vật Nữ vào đây (hoặc dùng tạm hình khối 3D)
+    public GameObject maleCharPrefab;     // Kéo Prefab nhân vật Nam vào đây
+    
+    [Header("Vị trí & Giao diện")]
+    public Transform[] prayerSlots;       // Kéo các slot trên bàn thờ vào đây
+    public Material candleMaterial;       // Kéo Material màu vàng sáng vào đây
+    public Transform uiCanvasTransform;   // Kéo Canvas chính vào đây để hiện chữ cầu nguyện
+
+    private int currentSlotIndex = 0;
+
+    public void TriggerInteraction(string userName, string comment, string gender)
+    {
+        if (prayerSlots.Length == 0 || candlePrefab == null)
+            return;
+
+        if (currentSlotIndex >= prayerSlots.Length)
+        {
+            currentSlotIndex = 0; // Quay vòng slot nếu hết chỗ
+        }
+
+        Transform targetSlot = prayerSlots[currentSlotIndex];
+        currentSlotIndex++;
+
+        // 1. Sinh nhân vật (Nam hoặc Nữ) tại vị trí trước bàn thờ
+        GameObject chosenCharPrefab = (gender == "male") ? maleCharPrefab : femaleCharPrefab;
+        if (chosenCharPrefab != null)
+        {
+            Vector3 spawnPos = targetSlot.position + new Vector3(0, 0, -1.5f); // Đứng trước slot nến
+            GameObject character = Instantiate(chosenCharPrefab, spawnPos, targetSlot.rotation);
+            character.name = "Char_" + userName;
+            Destroy(character, 6f); // Tự động thu hồi nhân vật sau 6 giây
+        }
+
+        // 2. Sinh cây nến và làm sáng
+        GameObject newCandle = Instantiate(candlePrefab, targetSlot.position, targetSlot.rotation);
+        newCandle.name = "Candle_" + userName;
+
+        Renderer candleRenderer = newCandle.GetComponent<Renderer>();
+        if (candleRenderer != null)
+        {
+            if (candleMaterial != null)
+            {
+                candleRenderer.material = candleMaterial;
+            }
+            else
+            {
+                Material litMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                litMaterial.color = new Color(1.0f, 0.8f, 0.2f);
+                litMaterial.SetColor("_BaseColor", new Color(1.0f, 0.8f, 0.2f));
+                candleRenderer.material = litMaterial;
+            }
+        }
+
+        // 3. Hiển thị lời cầu nguyện (Debug log hoặc tạo Text UI)
+        Debug.Log($"🌸 [CẦU NGUYỆN] **{userName}**: \"{comment}\"");
+    }
+}
