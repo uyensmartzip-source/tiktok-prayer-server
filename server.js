@@ -17,15 +17,30 @@ function connectToTikTok(socket, username) {
   }
 
   const cleanId = username.replace('@', '').trim();
-  console.log(`⏳ Đang kết nối tới phòng LIVE của: @${cleanId}...`);
+  console.log(`⏳ Đang kết nối (bản fix 403) tới phòng LIVE của: @${cleanId}...`);
   
-  tiktokLive = new WebcastPushConnection(cleanId);
+  // FIX CHÍNH: Thêm tùy chọn giả lập trình duyệt để lách cơ chế chặn 403 của TikTok
+  tiktokLive = new WebcastPushConnection(cleanId, {
+    enableExtendedGiftInfo: true,
+    processInitialData: true,
+    requestOptions: {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.tiktok.com/',
+        'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7'
+      }
+    },
+    clientParams: {
+      app_language: 'vi',
+      device_language: 'vi'
+    }
+  });
 
-  tiktokLive.connect().then(() => {
-    console.log(`✅ Đã kết nối thành công với LIVE của @${cleanId}`);
+  tiktokLive.connect().then(state => {
+    console.log(`✅ Kết nối thành công phòng LIVE: ${state.roomInfo.title || cleanId}`);
     socket.emit('status', { connected: true, username: cleanId });
   }).catch(err => {
-    console.log(`❌ Lỗi kết nối @${cleanId}: ${err.message}`);
+    console.log(`❌ Vẫn bị chặn 403 hoặc lỗi: ${err.message}`);
     socket.emit('status', { connected: false, error: err.message });
   });
 
@@ -46,12 +61,8 @@ function connectToTikTok(socket, username) {
 
 io.on('connection', (socket) => {
   console.log('📱 Giao diện app 3D đã kết nối vào Server trung gian.');
-  
-  // Lắng nghe lệnh gán kênh từ giao diện web
   socket.on('set_channel', (newUsername) => {
-    if (newUsername) {
-      connectToTikTok(socket, newUsername);
-    }
+    if (newUsername) connectToTikTok(socket, newUsername);
   });
 });
 
